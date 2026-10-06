@@ -14,7 +14,7 @@ HOST=127.0.0.1 ./docker-clef.sh start   # http://127.0.0.1:8100, this machine on
 ./docker-clef.sh install-boot   # once: come back after a host reboot
 ```
 
-No authentication: anyone who can reach the address can call it. Ready about 20 s after start; 9.2 GB on the GPU.
+No authentication: anyone who can reach the address can call it. Ready about 20 s after start; 10.3 GiB of GPU memory at idle (see below).
 
 ### What `build` needs and makes
 
@@ -80,6 +80,23 @@ curl -s 127.0.0.1:8100/v1/chat/completions -H 'content-type: application/json' -
 Short requests: 24 / 37 / 43 req/s at 1 / 8 / 32 clients. The container and a host-run server differ by less than 2.5%.
 Accuracy on 300 AG News + 300 Banking77 test samples: 91.0% / 94.3% (unquantized bf16: 92.3% / 94.0%). Small, easy tests: they show the
 quantized model tracks the original here, not how accurate it is on your data.
+
+### GPU memory
+
+Memory of the server process as `nvidia-smi` reports it, from a fresh start, running the workloads in this order. The process keeps what it
+has reached (PyTorch caches freed blocks), so each row is the high-water mark so far, not a per-request cost.
+
+| Workload | GPU memory |
+|---|---|
+| Idle after start and warm-up | 10.3 GiB |
+| Requests up to 3,658 input tokens, one at a time; 158-token requests at 1 / 8 / 32 clients | 10.3 GiB |
+| 7,158 input tokens, one at a time | 11.1 GiB |
+| 3,658 or 7,158 input tokens, 8 clients | 11.6 GiB |
+| 16,384 input tokens (the maximum; longer inputs are cut to it), 1 or 4 clients | 13.8 GiB |
+
+Of the idle figure, 8.6 GiB (9.2 GB) is the model as PyTorch counts it; the rest is the CUDA context and allocator cache. PyTorch's own
+allocations are capped at `CLEF_GPU_FRACTION` of the GPU's memory (default 0.14, 17 GiB here); a request that would exceed it gets HTTP 503.
+None of these workloads reached the cap. On top of the GPU memory, `docker stats` showed 4.5 GiB of RAM for the container.
 
 ## Things to know
 
