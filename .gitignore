@@ -218,3 +218,14 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- this project ---
+# the quantized model directory (9 GB of weights + files copied from the release): made by export_nvfp4.py, which `docker-clef.sh build` runs when it is missing
+clef-flash-nvfp4/
+# original bf16 release, downloaded by export_nvfp4.py
+clef-flash/
+# compiled causal-conv1d extension (250 MB), copied from .venv/ by docker-clef.sh build
+docker/prebuilt/
+*.out
+*.log
+.clef-docker.stopped

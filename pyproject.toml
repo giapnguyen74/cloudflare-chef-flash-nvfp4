@@ -1,0 +1,49 @@
+# The one Python environment of this project: `uv sync` creates .venv/ from uv.lock. The host uses it to quantize the model (export_nvfp4.py),
+# to compile causal-conv1d and to run the tests; the Docker image installs the same locked packages (docker/Dockerfile).
+[project]
+name = "clef-flash-nvfp4"
+version = "0.1.0"
+description = "Cloudflare/clef-flash quantized to NVFP4, served with an OpenAI-compatible API on DGX Spark / GB10"
+requires-python = "==3.13.*"
+dependencies = [
+    "torch==2.14.1+cu130",
+    "torchvision==0.29.1+cu130",
+    "torchao==0.18.0",
+    "mslk==2026.9.9+cu130",              # NVFP4 quantization kernel used by torchao
+    "transformers==5.18.0",
+    "safetensors==0.8.0",
+    "accelerate==1.15.0",
+    "bitsandbytes==0.50.2",              # CLEF_QUANT=nf4 backend only
+    "flash-linear-attention==0.5.2",     # fast gated-delta-rule kernels for the linear-attention layers
+    "causal-conv1d==1.7.0",              # compiled from source at `uv sync`: needs the CUDA toolkit (nvcc)
+    "huggingface-hub==1.33.0",
+    "fastapi==0.142.2",
+    "uvicorn==0.54.0",
+    "pillow==12.3.0",
+]
+
+[dependency-groups]
+dev = ["openai==3.24.0", "httpx==0.28.1"]     # test_openai.py, test_server.py, bench_http.py
+
+[tool.uv]
+package = false
+environments = ["sys_platform == 'linux' and platform_machine == 'aarch64'"]     # the cu130 wheels this is pinned to
+
+# causal-conv1d's setup.py imports torch: build it against the torch of this environment, not whatever PyPI resolves
+[tool.uv.extra-build-dependencies]
+causal-conv1d = [{ requirement = "torch", match-runtime = true }]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu130" }
+torchvision = { index = "pytorch-cu130" }
+mslk = { index = "pytorch-nightly-cu130" }
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-nightly-cu130"
+url = "https://download.pytorch.org/whl/nightly/cu130"
+explicit = true

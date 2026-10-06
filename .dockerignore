@@ -1,0 +1,12 @@
+# whitelist: the build context holds a 19 GB model and a llama.cpp tree
+*
+!server.py
+!clef_fast.py
+!openai_compat.py
+!clef_fast_calib.json
+!pyproject.toml
+!uv.lock
+!docker/prebuilt
+!docker/prebuilt/**
+!clef-flash-nvfp4
+!clef-flash-nvfp4/**
